@@ -11,27 +11,50 @@ import com.example.aeneisnotes.Model.Notlar;
 
 import java.util.List;
 
+import io.reactivex.rxjava3.core.Completable;
+import io.reactivex.rxjava3.core.Flowable;
+
 @Dao
 public interface NotlarDao {
 
 
-    @Query("Select * From Notlar")
-    List<Notlar> getAll();
+//    @Query("Select * From Notlar")
+//    List<Notlar> getAll();
+//
+//    @Insert
+//    void insert(Notlar notlar);
+//
+//    @Delete()
+//    void delete(Notlar notlar);
+//
+//    @Update
+//    void update(Notlar notlar);
+//
+//    @Query("DELETE FROM Notlar WHERE id = :id")
+//    void deleteById(int id);
+//
+//    @Query("UPDATE Notlar SET baslik = :baslik, metin = :metin WHERE id = :id")
+//    void updateById(int id, String baslik, String metin);
+
+    //RXJAVA
+
+    @Query("SELECT * FROM Notlar")
+    Flowable<List<Notlar>> getAll();
 
     @Insert
-    void insert(Notlar notlar);
+    Completable insert(Notlar notlar);
 
-    @Delete()
-    void delete(Notlar notlar);
+    @Delete
+    Completable delete(Notlar notlar);
 
     @Update
-    void update(Notlar notlar);
+    Completable update(Notlar notlar);
 
     @Query("DELETE FROM Notlar WHERE id = :id")
-    void deleteById(int id);
+    Completable deleteById(int id);
 
     @Query("UPDATE Notlar SET baslik = :baslik, metin = :metin WHERE id = :id")
-    void updateById(int id, String baslik, String metin);
+    Completable updateById(int id, String baslik, String metin);
 
 
 

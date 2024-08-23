@@ -18,6 +18,10 @@ import com.example.aeneisnotes.R;
 import com.example.aeneisnotes.RoomDb.NotlarDao;
 import com.example.aeneisnotes.RoomDb.NotlarDatabase;
 
+import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers;
+import io.reactivex.rxjava3.disposables.CompositeDisposable;
+import io.reactivex.rxjava3.schedulers.Schedulers;
+
 public class OlusturActivity extends AppCompatActivity {
 
     NotlarDatabase db;
@@ -25,6 +29,8 @@ public class OlusturActivity extends AppCompatActivity {
 
     EditText txtBaslik;
     EditText txtMetin;
+
+    private CompositeDisposable compositeDisposable=new CompositeDisposable();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -38,7 +44,7 @@ public class OlusturActivity extends AppCompatActivity {
         });
 
         db= Room.databaseBuilder(getApplicationContext(),NotlarDatabase.class,"Notlar")
-                .allowMainThreadQueries()
+//                .allowMainThreadQueries()
                 .build();
 
         notlarDao=db.notlarDao();
@@ -60,12 +66,25 @@ public class OlusturActivity extends AppCompatActivity {
         else
         {
             Notlar notlar=new Notlar(txtBaslik.getText().toString(),txtMetin.getText().toString());
-            notlarDao.insert(notlar);
-            Toast.makeText(OlusturActivity.this, "Not başarıyla kaydedildi!", Toast.LENGTH_SHORT).show();
-            Intent intent=new Intent(OlusturActivity.this,NotlarActivity.class);
-            startActivity(intent);
-            finish();
+            compositeDisposable.add(notlarDao.insert(notlar)
+                    .subscribeOn(Schedulers.io())
+                    .observeOn(AndroidSchedulers.mainThread())
+                    .subscribe(OlusturActivity.this::handleResponse)
+            );
         }
+    }
+
+    private void handleResponse(){
+        Toast.makeText(OlusturActivity.this, "Not başarıyla kaydedildi!", Toast.LENGTH_SHORT).show();
+        Intent intent=new Intent(OlusturActivity.this,NotlarActivity.class);
+        startActivity(intent);
+        finish();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        compositeDisposable.clear();
     }
 
 

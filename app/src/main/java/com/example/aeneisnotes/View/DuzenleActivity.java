@@ -21,6 +21,10 @@ import com.example.aeneisnotes.R;
 import com.example.aeneisnotes.RoomDb.NotlarDao;
 import com.example.aeneisnotes.RoomDb.NotlarDatabase;
 
+import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers;
+import io.reactivex.rxjava3.disposables.CompositeDisposable;
+import io.reactivex.rxjava3.schedulers.Schedulers;
+
 public class DuzenleActivity extends AppCompatActivity {
 
     NotlarDao notlarDao;
@@ -28,6 +32,7 @@ public class DuzenleActivity extends AppCompatActivity {
     EditText textBaslik;
     EditText textMetin;
     int id=99;
+    CompositeDisposable compositeDisposable=new CompositeDisposable();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,7 +50,7 @@ public class DuzenleActivity extends AppCompatActivity {
 
 
         db= Room.databaseBuilder(getApplicationContext(),NotlarDatabase.class,"Notlar")
-                .allowMainThreadQueries()
+//                .allowMainThreadQueries()
                 .build();
         notlarDao=db.notlarDao();
 
@@ -59,6 +64,14 @@ public class DuzenleActivity extends AppCompatActivity {
 
     }
 
+    private void handleResponse(){
+
+        Toast.makeText(DuzenleActivity.this, "Not başarıyla değiştirildi!", Toast.LENGTH_SHORT).show();
+
+        Intent intent = new Intent(DuzenleActivity.this, NotlarActivity.class);
+        startActivity(intent);
+        finish();
+    }
 
     public void duzenle(View view){
 
@@ -68,18 +81,21 @@ public class DuzenleActivity extends AppCompatActivity {
         if (baslik.isEmpty() || metin.isEmpty()) {
             Toast.makeText(DuzenleActivity.this, "Boş alan bırakamazsınız!", Toast.LENGTH_SHORT).show();
         } else {
-            // Güncelleme işlemini yap
-            notlarDao.updateById(id, baslik, metin);
+            compositeDisposable.add(notlarDao.updateById(id,baslik,metin)
+                    .subscribeOn(Schedulers.io())
+                    .observeOn(AndroidSchedulers.mainThread())
+                    .subscribe(DuzenleActivity.this::handleResponse)
+            );
+//            notlarDao.updateById(id, baslik, metin);
 
-            // Başarı mesajı göster
-            Toast.makeText(DuzenleActivity.this, "Not başarıyla değiştirildi!", Toast.LENGTH_SHORT).show();
-
-            // NotlarActivity'ye dön
-            Intent intent = new Intent(DuzenleActivity.this, NotlarActivity.class);
-            startActivity(intent);
-            finish();
         }
 
+    }
+
+    private void handleResponse2(){
+        Intent intent = new Intent(DuzenleActivity.this, NotlarActivity.class);
+        startActivity(intent);
+        finish();
     }
 
     public void sil(View view){
@@ -89,11 +105,11 @@ public class DuzenleActivity extends AppCompatActivity {
             alert.setTitle("Not Silme");
             alert.setMessage("Bu notu silmek istediğinize emin misiniz?\nBu işlem geri alınamaz!");
             alert.setPositiveButton("Evet", (dialog, which) -> {
-                notlarDao.deleteById(id);
-
-                Intent intent = new Intent(DuzenleActivity.this, NotlarActivity.class);
-                startActivity(intent);
-                finish();
+                compositeDisposable.add(notlarDao.deleteById(id)
+                        .subscribeOn(Schedulers.io())
+                        .observeOn(AndroidSchedulers.mainThread())
+                        .subscribe(DuzenleActivity.this::handleResponse2)
+                );
             });
             alert.setNegativeButton("Hayır", (dialog, which) -> dialog.dismiss());
 
@@ -105,4 +121,12 @@ public class DuzenleActivity extends AppCompatActivity {
         }
 
     }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        compositeDisposable.clear();
+    }
+
+
 }

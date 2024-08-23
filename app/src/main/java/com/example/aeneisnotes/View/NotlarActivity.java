@@ -19,11 +19,17 @@ import com.example.aeneisnotes.RoomDb.NotlarDatabase;
 
 import java.util.List;
 
+import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers;
+import io.reactivex.rxjava3.disposables.CompositeDisposable;
+import io.reactivex.rxjava3.schedulers.Schedulers;
+
 public class NotlarActivity extends AppCompatActivity {
 
     RecyclerView recyclerView;
     NotlarDao notlarDao;
     NotlarDatabase db;
+    CompositeDisposable compositeDisposable=new CompositeDisposable();
+    MyAdapter myAdapter;
 
 
     @Override
@@ -38,18 +44,34 @@ public class NotlarActivity extends AppCompatActivity {
         });
 
         recyclerView=findViewById(R.id.recyclerView);
-        recyclerView.setLayoutManager(new LinearLayoutManager(this));
 
         db= Room.databaseBuilder(getApplicationContext(),NotlarDatabase.class,"Notlar")
-                .allowMainThreadQueries()
+//                .allowMainThreadQueries()
                 .build();
         notlarDao=db.notlarDao();
 
-        List<Notlar> notlar=notlarDao.getAll();
+        compositeDisposable.add(notlarDao.getAll()
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(NotlarActivity.this::handleResponse)
+        );
 
-        MyAdapter myAdapter=new MyAdapter(NotlarActivity.this,notlar);
-        recyclerView.setAdapter(myAdapter);
-
+//        List<Notlar> notlar=notlarDao.getAll();
 
     }
+    private void handleResponse(List<Notlar> notlarList){
+        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        myAdapter=new MyAdapter(this,notlarList);
+        recyclerView.setAdapter(myAdapter);
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        compositeDisposable.clear();
+    }
+
+
+
+
 }
